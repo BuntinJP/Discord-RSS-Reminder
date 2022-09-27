@@ -1,0 +1,177 @@
+{
+  "name": "MMD紳士リマインダー",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "409817c7-4964-485a-a64b-db1abef41fed",
+      "name": "Start",
+      "type": "n8n-nodes-base.start",
+      "typeVersion": 1,
+      "position": [
+        240,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "triggerTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        }
+      },
+      "id": "c54d1cfb-c9d8-41bd-a78c-db24360bc276",
+      "name": "Cron",
+      "type": "n8n-nodes-base.cron",
+      "typeVersion": 1,
+      "position": [
+        240,
+        540
+      ]
+    },
+    {
+      "parameters": {
+        "url": "https://sinsimmd.com/?xml"
+      },
+      "id": "f8d2d8d7-da19-4cb3-8da7-bba8846aaf16",
+      "name": "RSS Feed Read",
+      "type": "n8n-nodes-base.rssFeedRead",
+      "typeVersion": 1,
+      "position": [
+        460,
+        540
+      ]
+    },
+    {
+      "parameters": {
+        "batchSize": 1,
+        "options": {
+          "reset": false
+        }
+      },
+      "id": "eb08d5eb-e3a9-4975-a7c4-6dc80013b01f",
+      "name": "SplitInBatches",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 1,
+      "position": [
+        680,
+        540
+      ]
+    },
+    {
+      "parameters": {
+        "functionCode": "const staticData = getWorkflowStaticData('global') // グローバル変数を取得\n\nconst lastIsoDate = staticData.lastIsoData // 前回の日時\n\nconst currentIsoDate = items[0].json.isoDate // 今回の日時\n\nif (lastIsoDate != currentIsoDate) { // 更新があったら処理\n  staticData.lastIsoData = currentIsoDate\n  return items // 新着を返却\n} else {\n  return [] // 何も返さない\n}"
+      },
+      "id": "2791176f-db6e-4c5f-96b5-e6a1e9fd53d5",
+      "name": "Function",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [
+        900,
+        540
+      ]
+    },
+    {
+      "parameters": {
+        "webhookUri": "=API_KEY",
+        "options": {
+          "embeds": "=[{\"title\":\"{{$node[\"Function\"].json[\"content\"]}}\",\n\"description\": \"{{$node[\"Function\"].json[\"dc:creator\"]}}\",\n\"url\":\"{{$node[\"Function\"].json[\"link\"]}}\",\n\"image\": {\"url\": \"{{$node[\"Function1\"].json[\"content_image\"][0]}}\"}\n}]"
+        }
+      },
+      "id": "cca4d99e-3c12-4dcb-9c98-dd05df6cb0ec",
+      "name": "Discord",
+      "type": "n8n-nodes-base.discord",
+      "typeVersion": 1,
+      "position": [
+        1280,
+        540
+      ],
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "functionCode": "// Code here will run only once, no matter how many input items there are.\n// More info and help: https://docs.n8n.io/nodes/n8n-nodes-base.function\n// Tip: You can use luxon for dates and $jmespath for querying JSON structures\n\n// Loop over inputs and add a new field called 'myNewField' to the JSON of each one\nlet content = {};\nfor(item of items) {\n    content.content_image= item.json[\"content:encoded\"].match(/https.*?jpg/);\n}\nreturn content;"
+      },
+      "id": "faf31858-42c0-4f97-a54c-8b8daa11b80f",
+      "name": "Function1",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [
+        1120,
+        400
+      ],
+      "alwaysOutputData": true,
+      "executeOnce": true,
+      "retryOnFail": true,
+      "notesInFlow": false,
+      "continueOnFail": true
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Cron": {
+      "main": [
+        [
+          {
+            "node": "RSS Feed Read",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "RSS Feed Read": {
+      "main": [
+        [
+          {
+            "node": "SplitInBatches",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "SplitInBatches": {
+      "main": [
+        [
+          {
+            "node": "Function",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Function": {
+      "main": [
+        [
+          {
+            "node": "Function1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Function1": {
+      "main": [
+        [
+          {
+            "node": "Discord",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {},
+  "id": 1,
+  "meta": {
+    "instanceId": "48a3160a6a2eb624caac4fbc013655ea463d3e24fbf760b780f68dd0be359674"
+  },
+  "tags": []
+}
